@@ -17,6 +17,16 @@ class TestGemInstaller < Gem::InstallerTestCase
     @@symlink_supported
   end
 
+  @@libruby_relative = nil
+
+  def libruby_relative?
+    if @@libruby_relative.nil?
+      @@libruby_relative = RbConfig::CONFIG['LIBRUBY_RELATIVE'] == 'yes'
+    else
+      @@libruby_relative
+    end
+  end
+
   def setup
     super
     common_installer_setup
@@ -71,6 +81,7 @@ end
     EOF
 
     wrapper = @installer.app_script_text 'executable'
+    wrapper = wrapper.sub(%r(\A#!/bin/sh\n(?:[^#\n].*\n)+), '')
     assert_equal expected, wrapper
   end
 
@@ -693,8 +704,14 @@ gem 'other', version
     @installer.generate_bin
 
     default_shebang = Gem.ruby
-    shebang_line = open("#{@gemhome}/bin/executable") { |f| f.readlines.first }
-    assert_match(/\A#!/, shebang_line)
+    lines = File.readlines("#{@gemhome}/bin/executable")
+    lines.first
+    assert_match(/\A#!/, lines.first)
+    if /\A#!\/bin\/sh(?!\S)/ =~ lines.first
+      begin lines.shift end until lines.empty? or /'exec'/ =~ lines.first
+      default_shebang = File.basename(default_shebang)
+    end
+    shebang_line = lines.first
     assert_match(/#{default_shebang}/, shebang_line)
   end
 
@@ -1435,7 +1452,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby}", shebang
+    assert_shebang %W"#{Gem.ruby}", shebang
   end
 
   def test_process_options
@@ -1459,14 +1476,14 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby} -ws", shebang
+    assert_shebang %W"#{Gem.ruby} -ws", shebang
   end
 
   def test_shebang_empty
     util_make_exec @spec, ''
 
     shebang = @installer.shebang 'executable'
-    assert_equal "#!#{Gem.ruby}", shebang
+    assert_shebang %W"#{Gem.ruby}", shebang
   end
 
   def test_shebang_env
@@ -1474,7 +1491,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby}", shebang
+    assert_shebang %W"#{Gem.ruby}", shebang
   end
 
   def test_shebang_env_arguments
@@ -1482,7 +1499,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby} -ws", shebang
+    assert_shebang %W"#{Gem.ruby} -ws", shebang
   end
 
   def test_shebang_env_shebang
@@ -1493,8 +1510,8 @@ gem 'other', version
 
     env_shebang = "/usr/bin/env" unless Gem.win_platform?
 
-    assert_equal("#!#{env_shebang} #{RbConfig::CONFIG['ruby_install_name']}",
-                 shebang)
+    assert_shebang(%W"#{env_shebang} #{RbConfig::CONFIG['ruby_install_name']}",
+                   shebang)
   end
 
   def test_shebang_nested
@@ -1502,7 +1519,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby}", shebang
+    assert_shebang %W"#{Gem.ruby}", shebang
   end
 
   def test_shebang_nested_arguments
@@ -1510,7 +1527,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby} -ws", shebang
+    assert_shebang %W"#{Gem.ruby} -ws", shebang
   end
 
   def test_shebang_version
@@ -1518,7 +1535,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby}", shebang
+    assert_shebang %W"#{Gem.ruby}", shebang
   end
 
   def test_shebang_version_arguments
@@ -1526,7 +1543,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby} -ws", shebang
+    assert_shebang %W"#{Gem.ruby} -ws", shebang
   end
 
   def test_shebang_version_env
@@ -1534,7 +1551,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby}", shebang
+    assert_shebang %W"#{Gem.ruby}", shebang
   end
 
   def test_shebang_version_env_arguments
@@ -1542,7 +1559,7 @@ gem 'other', version
 
     shebang = @installer.shebang 'executable'
 
-    assert_equal "#!#{Gem.ruby} -ws", shebang
+    assert_shebang %W"#{Gem.ruby} -ws", shebang
   end
 
   def test_shebang_custom
@@ -1751,5 +1768,23 @@ gem 'other', version
 
   def mask
     0100755 & (~File.umask)
+  end
+
+  def assert_shebang(expected, line)
+    line = line.sub(/\A#!\/bin\/sh(?:[ \t].*)?\n([^#\n].*\n|\n)+#!.*ruby\S*(\s.*)?/) do
+      opt = $2
+      bin = $1[/^'exec' "(\$\{0%\/\*\}\/)?(.*?)"/, 2]
+      if $1
+        ex = File.basename(expected[0])
+        if ex == "env"
+          ex = "#{expected[0]} "
+        else
+          expected[0] = ex
+          ex = ""
+        end
+      end
+      "#!#{ex}#{bin}#{opt}"
+    end
+    assert_equal("#!#{expected.join(' ')}", line)
   end
 end
