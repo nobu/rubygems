@@ -21,7 +21,7 @@ class Gem::Ext::Builder
     $1.downcase
   end
 
-  def self.make(dest_path, results, make_dir = Dir.pwd, sitedir = nil, targets = ["clean", "", "install"],
+  def self.make(dest_path, results, make_dir = Dir.pwd, sitedir = nil, targets = ["clean", "", "install", "distclean"],
     target_rbconfig: Gem.target_rbconfig, n_jobs: nil)
     unless File.exist? File.join(make_dir, "Makefile")
       # No makefile exists, nothing to do.
@@ -64,7 +64,7 @@ class Gem::Ext::Builder
       begin
         run(cmd, results, "make #{target}".rstrip, make_dir)
       rescue Gem::InstallError
-        raise unless target == "clean" # ignore clean failure
+        raise unless target.end_with?("clean") # ignore clean failure
       end
     end
   end
