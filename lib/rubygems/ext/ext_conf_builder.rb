@@ -34,8 +34,8 @@ class Gem::Ext::ExtConfBuilder < Gem::Ext::Builder
             r << "To see why this extension failed to compile, please check" \
               " the mkmf.log which can be found here:\n"
             r << "  " + File.join(dest_path, "mkmf.log") + "\n"
+            FileUtils.mv mkmf_log, dest_path
           end
-          FileUtils.mv mkmf_log, dest_path
         end
       end
 
