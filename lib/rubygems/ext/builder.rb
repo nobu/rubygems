@@ -220,7 +220,7 @@ EOF
 
       verbose { results.join("\n") }
 
-      write_gem_make_out results.join "\n"
+      write_gem_make_out ""
     rescue StandardError => e
       results << e.message
       build_error(results.join("\n"), $@)
