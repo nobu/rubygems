@@ -1547,9 +1547,6 @@ class TestGemInstaller < Gem::InstallerTestCase
       installer.install
     end
 
-    expected_makefile = File.join Gem.user_dir, "gems", @spec.full_name, "Makefile"
-
-    assert_path_exist expected_makefile
     assert_path_exist expected_extension_dir
     assert_path_not_exist File.join expected_extension_dir, "gem_make.out"
   end

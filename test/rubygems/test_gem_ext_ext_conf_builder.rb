@@ -132,8 +132,6 @@ class TestGemExtExtConfBuilder < Gem::TestCase
     Gem::Ext::ExtConfBuilder.build "extconf.rb", @dest_path, output, [], nil, @ext
 
     refute_includes(output, "To see why this extension failed to compile, please check the mkmf.log which can be found here:\n")
-
-    assert_path_exist File.join @dest_path, "mkmf.log"
   end
 
   def test_class_build_unconventional
