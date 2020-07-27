@@ -333,7 +333,7 @@ class Gem::TestCase < Minitest::Test
                    ruby
                  end
 
-    @git = ENV['GIT'] || (win_platform? ? 'git.exe' : 'git')
+    @git = ENV['GIT'] || "git#{RbConfig::CONFIG['EXEEXT']}"
 
     Gem.ensure_gem_subdirectories @gemhome
     Gem.ensure_default_gem_subdirectories @gemhome
@@ -1219,7 +1219,7 @@ Also, a list:
     ruby = ENV["RUBY"]
     return ruby if ruby
     ruby = "ruby"
-    rubyexe = "#{ruby}.exe"
+    rubyexe = "#{ruby}#{RbConfig::CONFIG['EXEEXT']}"
 
     3.times do
       if File.exist? ruby and File.executable? ruby and !File.directory? ruby
