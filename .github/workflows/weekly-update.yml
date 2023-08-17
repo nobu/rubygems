@@ -18,7 +18,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ ubuntu-22.04 ]
-        ruby: [ ruby-head ]
     steps:
       - name: Config git
         run: |
@@ -28,11 +27,10 @@ jobs:
 
       - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab # v3.5.2
 
-      - name: Set up Ruby
-        uses: ruby/setup-ruby@55283cc23133118229fd3f97f9336ee23a179fcf # v1.146.0
-        with:
-          ruby-version: ${{ matrix.ruby }}
-          bundler: none
+      - name: Check versions
+        run: |
+          ruby --version
+          rake --version
 
       - name: Update SPDX license list
         run: |
